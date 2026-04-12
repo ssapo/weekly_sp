@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2048 Game</title>
+  <style>
+    :root {
+      --bg: #faf8ef;
+      --panel: #bbada0;
+      --cell: rgba(238, 228, 218, 0.35);
+      --text: #776e65;
+      --light: #f9f6f2;
+      --shadow: rgba(0, 0, 0, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      font-family: "Segoe UI", "Noto Sans KR", sans-serif;
+      background:
+        radial-gradient(circle at top, #fff8e8 0%, #faf8ef 55%, #f3efe3 100%);
+      color: var(--text);
+    }
+
+    .app {
+      width: min(92vw, 520px);
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .title {
+      margin: 0;
+      font-size: clamp(52px, 10vw, 76px);
+      line-height: 0.9;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+    }
+
+    .subtitle {
+      margin: 10px 0 0;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: stretch;
+      min-width: 140px;
+    }
+
+    .scores {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .score-box {
+      background: #bbada0;
+      color: var(--light);
+      border-radius: 14px;
+      padding: 10px 12px;
+      text-align: center;
+      box-shadow: 0 10px 24px -18px var(--shadow);
+    }
+
+    .score-box span {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      opacity: 0.85;
+    }
+
+    .score-box strong {
+      display: block;
+      margin-top: 6px;
+      font-size: 26px;
+      line-height: 1;
+    }
+
+    button {
+      border: 0;
+      border-radius: 14px;
+      padding: 14px 18px;
+      background: #8f7a66;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 10px 24px -18px var(--shadow);
+      transition: transform 120ms ease, opacity 120ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    .board-wrap {
+      position: relative;
+      margin-top: 10px;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      padding: 12px;
+      background: var(--panel);
+      border-radius: 22px;
+      box-shadow: 0 20px 50px -30px rgba(0, 0, 0, 0.35);
+      touch-action: none;
+      user-select: none;
+    }
+
+    .cell {
+      aspect-ratio: 1;
+      border-radius: 16px;
+      background: var(--cell);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: clamp(28px, 7vw, 42px);
+      transition: background-color 140ms ease, color 140ms ease, transform 140ms ease;
+    }
+
+    .cell[data-value="0"] {
+      color: transparent;
+    }
+
+    .cell[data-value="2"] { background: #eee4da; color: #776e65; }
+    .cell[data-value="4"] { background: #ede0c8; color: #776e65; }
+    .cell[data-value="8"] { background: #f2b179; color: #f9f6f2; }
+    .cell[data-value="16"] { background: #f59563; color: #f9f6f2; }
+    .cell[data-value="32"] { background: #f67c5f; color: #f9f6f2; }
+    .cell[data-value="64"] { background: #f65e3b; color: #f9f6f2; }
+    .cell[data-value="128"] { background: #edcf72; color: #f9f6f2; font-size: clamp(24px, 6vw, 36px); }
+    .cell[data-value="256"] { background: #edcc61; color: #f9f6f2; font-size: clamp(24px, 6vw, 36px); }
+    .cell[data-value="512"] { background: #edc850; color: #f9f6f2; font-size: clamp(24px, 6vw, 36px); }
+    .cell[data-value="1024"] { background: #edc53f; color: #f9f6f2; font-size: clamp(20px, 5vw, 30px); }
+    .cell[data-value="2048"] { background: #edc22e; color: #f9f6f2; font-size: clamp(20px, 5vw, 30px); }
+    .cell[data-value="4096"],
+    .cell[data-value="8192"] {
+      background: #3c3a32;
+      color: #f9f6f2;
+      font-size: clamp(18px, 4.8vw, 28px);
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+      border-radius: 22px;
+      background: rgba(250, 248, 239, 0.85);
+      backdrop-filter: blur(4px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 160ms ease;
+    }
+
+    .overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .message-box h2 {
+      margin: 0 0 10px;
+      font-size: 34px;
+    }
+
+    .message-box p {
+      margin: 0 0 18px;
+      line-height: 1.5;
+    }
+
+    .hint {
+      margin-top: 14px;
+      font-size: 14px;
+      line-height: 1.5;
+      text-align: center;
+    }
+
+    @media (max-width: 560px) {
+      .header {
+        flex-direction: column;
+      }
+
+      .controls {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="header">
+      <div>
+        <h1 class="title">2048</h1>
+        <p class="subtitle">Join the tiles and make the 2048 tile.</p>
+      </div>
+      <div class="controls">
+        <div class="scores">
+          <div class="score-box">
+            <span>SCORE</span>
+            <strong id="score">0</strong>
+          </div>
+          <div class="score-box">
+            <span>BEST</span>
+            <strong id="best">0</strong>
+          </div>
+        </div>
+        <button id="restart" type="button">New Game</button>
+      </div>
+    </section>
+
+    <section class="board-wrap">
+      <div class="board" id="board" aria-label="2048 game board"></div>
+      <div class="overlay" id="overlay">
+        <div class="message-box">
+          <h2 id="message-title"></h2>
+          <p id="message-text"></p>
+          <button id="retry" type="button">Play Again</button>
+        </div>
+      </div>
+    </section>
+
+    <p class="hint">Use arrow keys on desktop or swipe on mobile.</p>
+  </main>
+
+  <script>
+    const size = 4;
+    const boardElement = document.getElementById("board");
+    const scoreElement = document.getElementById("score");
+    const bestElement = document.getElementById("best");
+    const overlayElement = document.getElementById("overlay");
+    const messageTitleElement = document.getElementById("message-title");
+    const messageTextElement = document.getElementById("message-text");
+    const restartButton = document.getElementById("restart");
+    const retryButton = document.getElementById("retry");
+
+    let board = [];
+    let score = 0;
+    let best = Number(localStorage.getItem("best-2048-score") || 0);
+    let hasWon = false;
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    function init() {
+      bestElement.textContent = best;
+      startGame();
+      bindEvents();
+    }
+
+    function startGame() {
+      board = Array.from({ length: size }, () => Array(size).fill(0));
+      score = 0;
+      hasWon = false;
+      addRandomTile();
+      addRandomTile();
+      hideMessage();
+      render();
+    }
+
+    function bindEvents() {
+      window.addEventListener("keydown", handleKeyDown);
+      restartButton.addEventListener("click", startGame);
+      retryButton.addEventListener("click", startGame);
+
+      boardElement.addEventListener("touchstart", (event) => {
+        const touch = event.changedTouches[0];
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+      }, { passive: true });
+
+      boardElement.addEventListener("touchend", (event) => {
+        const touch = event.changedTouches[0];
+        const deltaX = touch.clientX - touchStartX;
+        const deltaY = touch.clientY - touchStartY;
+        const threshold = 30;
+
+        if (Math.abs(deltaX) < threshold && Math.abs(deltaY) < threshold) {
+          return;
+        }
+
+        if (Math.abs(deltaX) > Math.abs(deltaY)) {
+          move(deltaX > 0 ? "right" : "left");
+        } else {
+          move(deltaY > 0 ? "down" : "up");
+        }
+      }, { passive: true });
+    }
+
+    function handleKeyDown(event) {
+      const keyMap = {
+        ArrowUp: "up",
+        ArrowDown: "down",
+        ArrowLeft: "left",
+        ArrowRight: "right"
+      };
+
+      const direction = keyMap[event.key];
+      if (!direction) {
+        return;
+      }
+
+      event.preventDefault();
+      move(direction);
+    }
+
+    function render() {
+      boardElement.innerHTML = "";
+
+      for (const row of board) {
+        for (const value of row) {
+          const cell = document.createElement("div");
+          cell.className = "cell";
+          cell.dataset.value = String(value);
+          cell.textContent = value === 0 ? "" : value;
+          boardElement.appendChild(cell);
+        }
+      }
+
+      scoreElement.textContent = score;
+      bestElement.textContent = best;
+    }
+
+    function addRandomTile() {
+      const emptyCells = [];
+
+      for (let row = 0; row < size; row += 1) {
+        for (let col = 0; col < size; col += 1) {
+          if (board[row][col] === 0) {
+            emptyCells.push([row, col]);
+          }
+        }
+      }
+
+      if (emptyCells.length === 0) {
+        return;
+      }
+
+      const [row, col] = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+      board[row][col] = Math.random() < 0.9 ? 2 : 4;
+    }
+
+    function move(direction) {
+      const previousBoard = board.map((row) => [...row]);
+
+      if (direction === "left") {
+        board = board.map((row) => slideAndMerge(row));
+      }
+
+      if (direction === "right") {
+        board = board.map((row) => slideAndMerge([...row].reverse()).reverse());
+      }
+
+      if (direction === "up") {
+        board = transpose(board).map((row) => slideAndMerge(row));
+        board = transpose(board);
+      }
+
+      if (direction === "down") {
+        board = transpose(board).map((row) => slideAndMerge([...row].reverse()).reverse());
+        board = transpose(board);
+      }
+
+      if (!boardsAreDifferent(previousBoard, board)) {
+        return;
+      }
+
+      addRandomTile();
+      best = Math.max(best, score);
+      localStorage.setItem("best-2048-score", String(best));
+      render();
+      evaluateState();
+    }
+
+    function slideAndMerge(line) {
+      const values = line.filter((value) => value !== 0);
+      const merged = [];
+
+      for (let index = 0; index < values.length; index += 1) {
+        if (values[index] === values[index + 1]) {
+          const combined = values[index] * 2;
+          merged.push(combined);
+          score += combined;
+          index += 1;
+
+          if (combined === 2048 && !hasWon) {
+            hasWon = true;
+            showMessage("You Win!", "Nice work. Keep going for a higher score.");
+          }
+        } else {
+          merged.push(values[index]);
+        }
+      }
+
+      while (merged.length < size) {
+        merged.push(0);
+      }
+
+      return merged;
+    }
+
+    function transpose(matrix) {
+      return matrix[0].map((_, colIndex) => matrix.map((row) => row[colIndex]));
+    }
+
+    function boardsAreDifferent(a, b) {
+      return a.some((row, rowIndex) =>
+        row.some((value, colIndex) => value !== b[rowIndex][colIndex])
+      );
+    }
+
+    function evaluateState() {
+      if (canMove()) {
+        return;
+      }
+
+      showMessage("Game Over", "No more moves left. Start a new run and beat your best score.");
+    }
+
+    function canMove() {
+      for (let row = 0; row < size; row += 1) {
+        for (let col = 0; col < size; col += 1) {
+          const current = board[row][col];
+
+          if (current === 0) {
+            return true;
+          }
+
+          if (col < size - 1 && current === board[row][col + 1]) {
+            return true;
+          }
+
+          if (row < size - 1 && current === board[row + 1][col]) {
+            return true;
+          }
+        }
+      }
+
+      return false;
+    }
+
+    function showMessage(title, text) {
+      messageTitleElement.textContent = title;
+      messageTextElement.textContent = text;
+      overlayElement.classList.add("show");
+    }
+
+    function hideMessage() {
+      overlayElement.classList.remove("show");
+    }
+
+    init();
+  </script>
+</body>
+</html>
