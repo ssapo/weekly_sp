@@ -129,6 +129,10 @@
       user-select: none;
     }
 
+    .board.bump {
+      animation: board-bump 180ms ease-out;
+    }
+
     .cell {
       aspect-ratio: 1;
       border-radius: 16px;
@@ -139,6 +143,14 @@
       font-weight: 800;
       font-size: clamp(28px, 7vw, 42px);
       transition: background-color 140ms ease, color 140ms ease, transform 140ms ease;
+    }
+
+    .cell.is-new {
+      animation: tile-pop 180ms ease-out;
+    }
+
+    .cell.is-merged {
+      animation: tile-merge 220ms ease-out;
     }
 
     .cell[data-value="0"] {
@@ -199,6 +211,50 @@
       font-size: 14px;
       line-height: 1.5;
       text-align: center;
+    }
+
+    @keyframes tile-pop {
+      0% {
+        opacity: 0;
+        transform: scale(0.55);
+      }
+
+      70% {
+        opacity: 1;
+        transform: scale(1.08);
+      }
+
+      100% {
+        transform: scale(1);
+      }
+    }
+
+    @keyframes tile-merge {
+      0% {
+        transform: scale(0.9);
+      }
+
+      55% {
+        transform: scale(1.16);
+      }
+
+      100% {
+        transform: scale(1);
+      }
+    }
+
+    @keyframes board-bump {
+      0% {
+        transform: scale(1);
+      }
+
+      50% {
+        transform: scale(0.992);
+      }
+
+      100% {
+        transform: scale(1);
+      }
     }
 
     @media (max-width: 560px) {
@@ -265,6 +321,8 @@
     let hasWon = false;
     let touchStartX = 0;
     let touchStartY = 0;
+    let spawnedTiles = new Set();
+    let mergedTiles = new Set();
 
     function init() {
       bestElement.textContent = best;
@@ -276,6 +334,8 @@
       board = Array.from({ length: size }, () => Array(size).fill(0));
       score = 0;
       hasWon = false;
+      spawnedTiles = new Set();
+      mergedTiles = new Set();
       addRandomTile();
       addRandomTile();
       hideMessage();
@@ -331,10 +391,21 @@
     function render() {
       boardElement.innerHTML = "";
 
-      for (const row of board) {
-        for (const value of row) {
+      for (let rowIndex = 0; rowIndex < size; rowIndex += 1) {
+        for (let colIndex = 0; colIndex < size; colIndex += 1) {
+          const value = board[rowIndex][colIndex];
+          const key = getCellKey(rowIndex, colIndex);
           const cell = document.createElement("div");
           cell.className = "cell";
+
+          if (spawnedTiles.has(key)) {
+            cell.classList.add("is-new");
+          }
+
+          if (mergedTiles.has(key)) {
+            cell.classList.add("is-merged");
+          }
+
           cell.dataset.value = String(value);
           cell.textContent = value === 0 ? "" : value;
           boardElement.appendChild(cell);
@@ -362,49 +433,79 @@
 
       const [row, col] = emptyCells[Math.floor(Math.random() * emptyCells.length)];
       board[row][col] = Math.random() < 0.9 ? 2 : 4;
+      spawnedTiles.add(getCellKey(row, col));
     }
 
     function move(direction) {
       const previousBoard = board.map((row) => [...row]);
+      spawnedTiles = new Set();
+      mergedTiles = new Set();
 
       if (direction === "left") {
-        board = board.map((row) => slideAndMerge(row));
+        board = board.map((row, rowIndex) =>
+          slideAndMerge(row, Array.from({ length: size }, (_, colIndex) => [rowIndex, colIndex])).line
+        );
       }
 
       if (direction === "right") {
-        board = board.map((row) => slideAndMerge([...row].reverse()).reverse());
+        board = board.map((row, rowIndex) =>
+          slideAndMerge(
+            [...row].reverse(),
+            Array.from({ length: size }, (_, offset) => [rowIndex, size - 1 - offset])
+          ).line.reverse()
+        );
       }
 
       if (direction === "up") {
-        board = transpose(board).map((row) => slideAndMerge(row));
-        board = transpose(board);
+        for (let col = 0; col < size; col += 1) {
+          const line = Array.from({ length: size }, (_, row) => board[row][col]);
+          const positions = Array.from({ length: size }, (_, row) => [row, col]);
+          const result = slideAndMerge(line, positions).line;
+
+          for (let row = 0; row < size; row += 1) {
+            board[row][col] = result[row];
+          }
+        }
       }
 
       if (direction === "down") {
-        board = transpose(board).map((row) => slideAndMerge([...row].reverse()).reverse());
-        board = transpose(board);
+        for (let col = 0; col < size; col += 1) {
+          const line = Array.from({ length: size }, (_, row) => board[size - 1 - row][col]);
+          const positions = Array.from({ length: size }, (_, offset) => [size - 1 - offset, col]);
+          const result = slideAndMerge(line, positions).line.reverse();
+
+          for (let row = 0; row < size; row += 1) {
+            board[row][col] = result[row];
+          }
+        }
       }
 
       if (!boardsAreDifferent(previousBoard, board)) {
+        spawnedTiles = new Set();
+        mergedTiles = new Set();
         return;
       }
 
       addRandomTile();
       best = Math.max(best, score);
       localStorage.setItem("best-2048-score", String(best));
+      triggerBoardBump();
       render();
       evaluateState();
     }
 
-    function slideAndMerge(line) {
-      const values = line.filter((value) => value !== 0);
+    function slideAndMerge(line, positions) {
+      const values = line
+        .map((value, index) => ({ value, position: positions[index] }))
+        .filter((cell) => cell.value !== 0);
       const merged = [];
 
       for (let index = 0; index < values.length; index += 1) {
-        if (values[index] === values[index + 1]) {
-          const combined = values[index] * 2;
+        if (values[index].value === values[index + 1]?.value) {
+          const combined = values[index].value * 2;
           merged.push(combined);
           score += combined;
+          mergedTiles.add(getCellKey(...positions[merged.length - 1]));
           index += 1;
 
           if (combined === 2048 && !hasWon) {
@@ -412,7 +513,7 @@
             showMessage("You Win!", "Nice work. Keep going for a higher score.");
           }
         } else {
-          merged.push(values[index]);
+          merged.push(values[index].value);
         }
       }
 
@@ -420,7 +521,7 @@
         merged.push(0);
       }
 
-      return merged;
+      return { line: merged };
     }
 
     function transpose(matrix) {
@@ -471,6 +572,16 @@
 
     function hideMessage() {
       overlayElement.classList.remove("show");
+    }
+
+    function triggerBoardBump() {
+      boardElement.classList.remove("bump");
+      void boardElement.offsetWidth;
+      boardElement.classList.add("bump");
+    }
+
+    function getCellKey(row, col) {
+      return `${row}-${col}`;
     }
 
     init();
