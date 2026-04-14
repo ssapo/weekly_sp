@@ -248,28 +248,6 @@
       outline: none;
     }
 
-    .toggle-bgm {
-      width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      border-radius: 14px;
-      padding: 12px 14px;
-      background: rgba(255, 255, 255, 0.72);
-      color: var(--text);
-      font-size: 14px;
-      font-weight: 700;
-      box-shadow: 0 10px 24px -18px var(--shadow);
-    }
-
-    .toggle-bgm input {
-      inline-size: 18px;
-      block-size: 18px;
-      accent-color: var(--button);
-      cursor: pointer;
-    }
-
     .board {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -448,10 +426,6 @@
           <option value="lime">Lime</option>
           <option value="midnight">Midnight</option>
         </select>
-        <label class="toggle-bgm" for="bgm-toggle">
-          <span>BGM</span>
-          <input id="bgm-toggle" type="checkbox">
-        </label>
         <button id="restart" type="button">New Game</button>
       </div>
     </section>
@@ -483,11 +457,9 @@
     const restartButton = document.getElementById("restart");
     const retryButton = document.getElementById("retry");
     const themeSelect = document.getElementById("theme-select");
-    const bgmToggle = document.getElementById("bgm-toggle");
     const animationDuration = 150;
     const themeStorageKey = "2048-theme";
     const soundStorageKey = "2048-sound-enabled";
-    const bgmStorageKey = "2048-bgm-enabled";
 
     let board = [];
     let score = 0;
@@ -500,7 +472,7 @@
     let settlingTiles = new Set();
     let isAnimating = false;
     let soundEnabled = true;
-    let bgmEnabled = false;
+    let bgmEnabled = true;
     let audioContext = null;
     let bgmLoopId = null;
     let bgmStep = 0;
@@ -509,7 +481,6 @@
       bestElement.textContent = best;
       loadTheme();
       loadSoundPreference();
-      loadBgmPreference();
       startGame();
       bindEvents();
     }
@@ -534,22 +505,10 @@
       restartButton.addEventListener("click", startGame);
       retryButton.addEventListener("click", startGame);
       themeSelect.addEventListener("change", (event) => applyTheme(event.target.value));
-      bgmToggle.addEventListener("change", () => {
-        bgmEnabled = bgmToggle.checked;
-        localStorage.setItem(bgmStorageKey, String(bgmEnabled));
-        if (bgmEnabled) {
-          ensureAudioReady();
-          startBgm();
-        } else {
-          stopBgm();
-        }
-      });
 
       boardElement.addEventListener("touchstart", (event) => {
         ensureAudioReady();
-        if (bgmEnabled) {
-          startBgm();
-        }
+        startBgm();
         const touch = event.changedTouches[0];
         touchStartX = touch.clientX;
         touchStartY = touch.clientY;
@@ -575,9 +534,7 @@
 
     function handleKeyDown(event) {
       ensureAudioReady();
-      if (bgmEnabled) {
-        startBgm();
-      }
+      startBgm();
       const keyMap = {
         ArrowUp: "up",
         ArrowDown: "down",
@@ -858,11 +815,6 @@
       soundEnabled = localStorage.getItem(soundStorageKey) !== "false";
     }
 
-    function loadBgmPreference() {
-      bgmEnabled = localStorage.getItem(bgmStorageKey) === "true";
-      bgmToggle.checked = bgmEnabled;
-    }
-
     function ensureAudioReady() {
       if (!soundEnabled && !bgmEnabled) {
         return;
@@ -934,10 +886,6 @@
     }
 
     function startBgm() {
-      if (!bgmEnabled) {
-        return;
-      }
-
       ensureAudioReady();
       if (!audioContext || bgmLoopId !== null) {
         return;
@@ -956,7 +904,7 @@
     }
 
     function playBgmStep() {
-      if (!bgmEnabled || !audioContext) {
+      if (!audioContext) {
         return;
       }
 
@@ -972,8 +920,8 @@
       ];
 
       const [root, top] = pattern[bgmStep % pattern.length];
-      playTone(root, 0.34, "sine", 0.008, 0);
-      playTone(top, 0.26, "triangle", 0.0045, 0.08);
+      playTone(root, 0.34, "sine", 0.012, 0);
+      playTone(top, 0.26, "triangle", 0.00675, 0.08);
       bgmStep += 1;
     }
 
