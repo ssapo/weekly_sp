@@ -248,7 +248,7 @@
       outline: none;
     }
 
-    .toggle-sound {
+    .toggle-bgm {
       width: 100%;
       display: flex;
       align-items: center;
@@ -263,7 +263,7 @@
       box-shadow: 0 10px 24px -18px var(--shadow);
     }
 
-    .toggle-sound input {
+    .toggle-bgm input {
       inline-size: 18px;
       block-size: 18px;
       accent-color: var(--button);
@@ -448,9 +448,9 @@
           <option value="lime">Lime</option>
           <option value="midnight">Midnight</option>
         </select>
-        <label class="toggle-sound" for="sound-toggle">
-          <span>Sound</span>
-          <input id="sound-toggle" type="checkbox" checked>
+        <label class="toggle-bgm" for="bgm-toggle">
+          <span>BGM</span>
+          <input id="bgm-toggle" type="checkbox">
         </label>
         <button id="restart" type="button">New Game</button>
       </div>
@@ -483,10 +483,11 @@
     const restartButton = document.getElementById("restart");
     const retryButton = document.getElementById("retry");
     const themeSelect = document.getElementById("theme-select");
-    const soundToggle = document.getElementById("sound-toggle");
+    const bgmToggle = document.getElementById("bgm-toggle");
     const animationDuration = 150;
     const themeStorageKey = "2048-theme";
     const soundStorageKey = "2048-sound-enabled";
+    const bgmStorageKey = "2048-bgm-enabled";
 
     let board = [];
     let score = 0;
@@ -499,12 +500,16 @@
     let settlingTiles = new Set();
     let isAnimating = false;
     let soundEnabled = true;
+    let bgmEnabled = false;
     let audioContext = null;
+    let bgmLoopId = null;
+    let bgmStep = 0;
 
     function init() {
       bestElement.textContent = best;
       loadTheme();
       loadSoundPreference();
+      loadBgmPreference();
       startGame();
       bindEvents();
     }
@@ -529,16 +534,22 @@
       restartButton.addEventListener("click", startGame);
       retryButton.addEventListener("click", startGame);
       themeSelect.addEventListener("change", (event) => applyTheme(event.target.value));
-      soundToggle.addEventListener("change", () => {
-        soundEnabled = soundToggle.checked;
-        localStorage.setItem(soundStorageKey, String(soundEnabled));
-        if (soundEnabled) {
+      bgmToggle.addEventListener("change", () => {
+        bgmEnabled = bgmToggle.checked;
+        localStorage.setItem(bgmStorageKey, String(bgmEnabled));
+        if (bgmEnabled) {
           ensureAudioReady();
+          startBgm();
+        } else {
+          stopBgm();
         }
       });
 
       boardElement.addEventListener("touchstart", (event) => {
         ensureAudioReady();
+        if (bgmEnabled) {
+          startBgm();
+        }
         const touch = event.changedTouches[0];
         touchStartX = touch.clientX;
         touchStartY = touch.clientY;
@@ -564,6 +575,9 @@
 
     function handleKeyDown(event) {
       ensureAudioReady();
+      if (bgmEnabled) {
+        startBgm();
+      }
       const keyMap = {
         ArrowUp: "up",
         ArrowDown: "down",
@@ -842,11 +856,15 @@
 
     function loadSoundPreference() {
       soundEnabled = localStorage.getItem(soundStorageKey) !== "false";
-      soundToggle.checked = soundEnabled;
+    }
+
+    function loadBgmPreference() {
+      bgmEnabled = localStorage.getItem(bgmStorageKey) === "true";
+      bgmToggle.checked = bgmEnabled;
     }
 
     function ensureAudioReady() {
-      if (!soundEnabled) {
+      if (!soundEnabled && !bgmEnabled) {
         return;
       }
 
@@ -862,6 +880,23 @@
       if (audioContext.state === "suspended") {
         audioContext.resume();
       }
+    }
+
+    function playTone(frequency, duration, type, volume, delay) {
+      const startAt = audioContext.currentTime + delay;
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.type = type;
+      oscillator.frequency.setValueAtTime(frequency, startAt);
+      gainNode.gain.setValueAtTime(0.0001, startAt);
+      gainNode.gain.exponentialRampToValueAtTime(volume, startAt + 0.01);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      oscillator.start(startAt);
+      oscillator.stop(startAt + duration + 0.02);
     }
 
     function playMoveSound(isMerge) {
@@ -898,21 +933,48 @@
       playTone(1040, 0.13, "triangle", 0.03, 0.16);
     }
 
-    function playTone(frequency, duration, type, volume, delay) {
-      const startAt = audioContext.currentTime + delay;
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
+    function startBgm() {
+      if (!bgmEnabled) {
+        return;
+      }
 
-      oscillator.type = type;
-      oscillator.frequency.setValueAtTime(frequency, startAt);
-      gainNode.gain.setValueAtTime(0.0001, startAt);
-      gainNode.gain.exponentialRampToValueAtTime(volume, startAt + 0.01);
-      gainNode.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
+      ensureAudioReady();
+      if (!audioContext || bgmLoopId !== null) {
+        return;
+      }
 
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      oscillator.start(startAt);
-      oscillator.stop(startAt + duration + 0.02);
+      bgmStep = 0;
+      playBgmStep();
+      bgmLoopId = window.setInterval(playBgmStep, 420);
+    }
+
+    function stopBgm() {
+      if (bgmLoopId !== null) {
+        window.clearInterval(bgmLoopId);
+        bgmLoopId = null;
+      }
+    }
+
+    function playBgmStep() {
+      if (!bgmEnabled || !audioContext) {
+        return;
+      }
+
+      const pattern = [
+        [261.63, 329.63],
+        [293.66, 349.23],
+        [329.63, 392.0],
+        [293.66, 349.23],
+        [246.94, 329.63],
+        [293.66, 392.0],
+        [220.0, 293.66],
+        [246.94, 329.63]
+      ];
+
+      const [root, top] = pattern[bgmStep % pattern.length];
+      playTone(root, 0.34, "sine", 0.008, 0);
+      playTone(top, 0.26, "triangle", 0.0045, 0.08);
+      bgmStep += 1;
     }
 
     function positionsMatch(a, b) {
