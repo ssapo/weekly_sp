@@ -421,6 +421,14 @@
             <span>BEST</span>
             <strong id="best">0</strong>
           </div>
+          <div class="score-box">
+            <span>TIME</span>
+            <strong id="time-played">0s</strong>
+          </div>
+          <div class="score-box">
+            <span>TURN</span>
+            <strong id="turn-time">0s</strong>
+          </div>
         </div>
         <select id="theme-select" class="theme-picker" aria-label="Choose color theme">
           <option value="classic">Classic</option>
@@ -453,6 +461,8 @@
     const boardElement = document.getElementById("board");
     const scoreElement = document.getElementById("score");
     const bestElement = document.getElementById("best");
+    const timePlayedElement = document.getElementById("time-played");
+    const turnTimeElement = document.getElementById("turn-time");
     const overlayElement = document.getElementById("overlay");
     const motionLayerElement = document.getElementById("motion-layer");
     const messageTitleElement = document.getElementById("message-title");
@@ -479,6 +489,9 @@
     let audioContext = null;
     let bgmLoopId = null;
     let bgmStep = 0;
+    let clockIntervalId = null;
+    let gameStartTime = Date.now();
+    let turnStartTime = Date.now();
 
     function init() {
       bestElement.textContent = best;
@@ -486,6 +499,7 @@
       loadSoundPreference();
       startGame();
       bindEvents();
+      startClock();
     }
 
     function startGame() {
@@ -497,6 +511,8 @@
       settlingTiles = new Set();
       isAnimating = false;
       motionLayerElement.innerHTML = "";
+      gameStartTime = Date.now();
+      turnStartTime = Date.now();
       addRandomTile();
       addRandomTile();
       hideMessage();
@@ -584,6 +600,7 @@
 
       scoreElement.textContent = score;
       bestElement.textContent = best;
+      renderTimers();
     }
 
     function addRandomTile() {
@@ -635,6 +652,7 @@
         settlingTiles = new Set();
         playMoveSound(didMerge);
         addRandomTile();
+        turnStartTime = Date.now();
         render();
         evaluateState();
         return;
@@ -647,6 +665,7 @@
         settlingTiles = new Set();
         playMoveSound(didMerge);
         addRandomTile();
+        turnStartTime = Date.now();
         render();
         evaluateState();
       });
@@ -818,6 +837,23 @@
       soundEnabled = localStorage.getItem(soundStorageKey) !== "false";
     }
 
+    function startClock() {
+      if (clockIntervalId !== null) {
+        window.clearInterval(clockIntervalId);
+      }
+
+      renderTimers();
+      clockIntervalId = window.setInterval(renderTimers, 1000);
+    }
+
+    function renderTimers() {
+      const now = Date.now();
+      const playedSeconds = Math.floor((now - gameStartTime) / 1000);
+      const turnSeconds = Math.floor((now - turnStartTime) / 1000);
+      timePlayedElement.textContent = `${playedSeconds}s`;
+      turnTimeElement.textContent = `${turnSeconds}s`;
+    }
+
     function ensureAudioReady() {
       if (!soundEnabled && !bgmEnabled) {
         return;
@@ -865,12 +901,12 @@
       }
 
       if (isMerge) {
-        playTone(540, 0.06, "triangle", 0.045, 0);
-        playTone(720, 0.08, "triangle", 0.03, 0.04);
+        playTone(540, 0.06, "triangle", 0.024, 0);
+        playTone(720, 0.08, "triangle", 0.018, 0.04);
         return;
       }
 
-      playTone(300, 0.035, "square", 0.02, 0);
+      playTone(300, 0.035, "square", 0.016, 0);
     }
 
     function playWinSound() {
@@ -883,9 +919,9 @@
         return;
       }
 
-      playTone(660, 0.09, "triangle", 0.04, 0);
-      playTone(880, 0.11, "triangle", 0.035, 0.08);
-      playTone(1040, 0.13, "triangle", 0.03, 0.16);
+      playTone(660, 0.09, "triangle", 0.022, 0);
+      playTone(880, 0.11, "triangle", 0.018, 0.08);
+      playTone(1040, 0.13, "triangle", 0.015, 0.16);
     }
 
     function startBgm() {
@@ -923,8 +959,8 @@
       ];
 
       const [root, top] = pattern[bgmStep % pattern.length];
-      playTone(root, 0.34, "sine", 0.012, 0);
-      playTone(top, 0.26, "triangle", 0.00675, 0.08);
+      playTone(root, 0.34, "sine", 0.024, 0);
+      playTone(top, 0.26, "triangle", 0.0135, 0.08);
       bgmStep += 1;
     }
 
