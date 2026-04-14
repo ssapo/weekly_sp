@@ -129,10 +129,6 @@
       user-select: none;
     }
 
-    .board.bump {
-      animation: board-bump 180ms ease-out;
-    }
-
     .cell {
       aspect-ratio: 1;
       border-radius: 16px;
@@ -151,6 +147,10 @@
 
     .cell.is-merged {
       animation: tile-merge 220ms ease-out;
+    }
+
+    .cell.is-hidden {
+      opacity: 0;
     }
 
     .cell[data-value="0"] {
@@ -189,6 +189,21 @@
       opacity: 0;
       pointer-events: none;
       transition: opacity 160ms ease;
+    }
+
+    .motion-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .motion-tile {
+      position: absolute;
+      margin: 0;
+      transition: transform 150ms ease-in-out;
+      box-shadow: 0 12px 20px -16px rgba(0, 0, 0, 0.35);
+      will-change: transform;
     }
 
     .overlay.show {
@@ -243,20 +258,6 @@
       }
     }
 
-    @keyframes board-bump {
-      0% {
-        transform: scale(1);
-      }
-
-      50% {
-        transform: scale(0.992);
-      }
-
-      100% {
-        transform: scale(1);
-      }
-    }
-
     @media (max-width: 560px) {
       .header {
         flex-direction: column;
@@ -292,6 +293,7 @@
 
     <section class="board-wrap">
       <div class="board" id="board" aria-label="2048 game board"></div>
+      <div class="motion-layer" id="motion-layer" aria-hidden="true"></div>
       <div class="overlay" id="overlay">
         <div class="message-box">
           <h2 id="message-title"></h2>
@@ -310,10 +312,12 @@
     const scoreElement = document.getElementById("score");
     const bestElement = document.getElementById("best");
     const overlayElement = document.getElementById("overlay");
+    const motionLayerElement = document.getElementById("motion-layer");
     const messageTitleElement = document.getElementById("message-title");
     const messageTextElement = document.getElementById("message-text");
     const restartButton = document.getElementById("restart");
     const retryButton = document.getElementById("retry");
+    const animationDuration = 150;
 
     let board = [];
     let score = 0;
@@ -323,6 +327,8 @@
     let touchStartY = 0;
     let spawnedTiles = new Set();
     let mergedTiles = new Set();
+    let settlingTiles = new Set();
+    let isAnimating = false;
 
     function init() {
       bestElement.textContent = best;
@@ -336,6 +342,9 @@
       hasWon = false;
       spawnedTiles = new Set();
       mergedTiles = new Set();
+      settlingTiles = new Set();
+      isAnimating = false;
+      motionLayerElement.innerHTML = "";
       addRandomTile();
       addRandomTile();
       hideMessage();
@@ -380,7 +389,7 @@
       };
 
       const direction = keyMap[event.key];
-      if (!direction) {
+      if (!direction || isAnimating) {
         return;
       }
 
@@ -404,6 +413,10 @@
 
           if (mergedTiles.has(key)) {
             cell.classList.add("is-merged");
+          }
+
+          if (settlingTiles.has(key)) {
+            cell.classList.add("is-hidden");
           }
 
           cell.dataset.value = String(value);
@@ -437,75 +450,126 @@
     }
 
     function move(direction) {
+      if (isAnimating) {
+        return;
+      }
+
       const previousBoard = board.map((row) => [...row]);
       spawnedTiles = new Set();
       mergedTiles = new Set();
+      const moveResult = runMove(direction);
+      board = moveResult.board;
+      mergedTiles = moveResult.mergedTiles;
+
+      if (!boardsAreDifferent(previousBoard, board)) {
+        spawnedTiles = new Set();
+        mergedTiles = new Set();
+        settlingTiles = new Set();
+        return;
+      }
+
+      best = Math.max(best, score);
+      localStorage.setItem("best-2048-score", String(best));
+      const movingTiles = moveResult.moves.filter((moveItem) => !positionsMatch(moveItem.from, moveItem.to));
+      settlingTiles = new Set(movingTiles.map((moveItem) => getCellKey(...moveItem.to)));
+
+      if (movingTiles.length === 0) {
+        settlingTiles = new Set();
+        addRandomTile();
+        render();
+        evaluateState();
+        return;
+      }
+
+      isAnimating = true;
+      render();
+      animateMoves(movingTiles, () => {
+        isAnimating = false;
+        settlingTiles = new Set();
+        addRandomTile();
+        render();
+        evaluateState();
+      });
+    }
+
+    function runMove(direction) {
+      const nextBoard = board.map((row) => [...row]);
+      const allMoves = [];
+      const nextMergedTiles = new Set();
 
       if (direction === "left") {
-        board = board.map((row, rowIndex) =>
-          slideAndMerge(row, Array.from({ length: size }, (_, colIndex) => [rowIndex, colIndex])).line
-        );
+        for (let row = 0; row < size; row += 1) {
+          const positions = Array.from({ length: size }, (_, col) => [row, col]);
+          const result = slideAndMerge(nextBoard[row], positions);
+          nextBoard[row] = result.line;
+          result.moves.forEach((moveItem) => allMoves.push(moveItem));
+          result.mergedTiles.forEach((key) => nextMergedTiles.add(key));
+        }
       }
 
       if (direction === "right") {
-        board = board.map((row, rowIndex) =>
-          slideAndMerge(
-            [...row].reverse(),
-            Array.from({ length: size }, (_, offset) => [rowIndex, size - 1 - offset])
-          ).line.reverse()
-        );
+        for (let row = 0; row < size; row += 1) {
+          const positions = Array.from({ length: size }, (_, offset) => [row, size - 1 - offset]);
+          const reversedLine = [...nextBoard[row]].reverse();
+          const result = slideAndMerge(reversedLine, positions);
+          nextBoard[row] = result.line.reverse();
+          result.moves.forEach((moveItem) => allMoves.push(moveItem));
+          result.mergedTiles.forEach((key) => nextMergedTiles.add(key));
+        }
       }
 
       if (direction === "up") {
         for (let col = 0; col < size; col += 1) {
-          const line = Array.from({ length: size }, (_, row) => board[row][col]);
+          const line = Array.from({ length: size }, (_, row) => nextBoard[row][col]);
           const positions = Array.from({ length: size }, (_, row) => [row, col]);
-          const result = slideAndMerge(line, positions).line;
+          const result = slideAndMerge(line, positions);
 
           for (let row = 0; row < size; row += 1) {
-            board[row][col] = result[row];
+            nextBoard[row][col] = result.line[row];
           }
+
+          result.moves.forEach((moveItem) => allMoves.push(moveItem));
+          result.mergedTiles.forEach((key) => nextMergedTiles.add(key));
         }
       }
 
       if (direction === "down") {
         for (let col = 0; col < size; col += 1) {
-          const line = Array.from({ length: size }, (_, row) => board[size - 1 - row][col]);
+          const line = Array.from({ length: size }, (_, row) => nextBoard[size - 1 - row][col]);
           const positions = Array.from({ length: size }, (_, offset) => [size - 1 - offset, col]);
-          const result = slideAndMerge(line, positions).line.reverse();
+          const result = slideAndMerge(line, positions);
+          const orderedLine = result.line.reverse();
 
           for (let row = 0; row < size; row += 1) {
-            board[row][col] = result[row];
+            nextBoard[row][col] = orderedLine[row];
           }
+
+          result.moves.forEach((moveItem) => allMoves.push(moveItem));
+          result.mergedTiles.forEach((key) => nextMergedTiles.add(key));
         }
       }
 
-      if (!boardsAreDifferent(previousBoard, board)) {
-        spawnedTiles = new Set();
-        mergedTiles = new Set();
-        return;
-      }
-
-      addRandomTile();
-      best = Math.max(best, score);
-      localStorage.setItem("best-2048-score", String(best));
-      triggerBoardBump();
-      render();
-      evaluateState();
+      return { board: nextBoard, moves: allMoves, mergedTiles: nextMergedTiles };
     }
 
     function slideAndMerge(line, positions) {
       const values = line
-        .map((value, index) => ({ value, position: positions[index] }))
+        .map((value, index) => ({ value, from: positions[index] }))
         .filter((cell) => cell.value !== 0);
       const merged = [];
+      const moves = [];
+      const lineMergedTiles = new Set();
 
       for (let index = 0; index < values.length; index += 1) {
+        const targetPosition = positions[merged.length];
+
         if (values[index].value === values[index + 1]?.value) {
           const combined = values[index].value * 2;
           merged.push(combined);
           score += combined;
-          mergedTiles.add(getCellKey(...positions[merged.length - 1]));
+          moves.push({ value: values[index].value, from: values[index].from, to: targetPosition });
+          moves.push({ value: values[index + 1].value, from: values[index + 1].from, to: targetPosition });
+          lineMergedTiles.add(getCellKey(...targetPosition));
           index += 1;
 
           if (combined === 2048 && !hasWon) {
@@ -514,6 +578,7 @@
           }
         } else {
           merged.push(values[index].value);
+          moves.push({ value: values[index].value, from: values[index].from, to: targetPosition });
         }
       }
 
@@ -521,11 +586,7 @@
         merged.push(0);
       }
 
-      return { line: merged };
-    }
-
-    function transpose(matrix) {
-      return matrix[0].map((_, colIndex) => matrix.map((row) => row[colIndex]));
+      return { line: merged, moves, mergedTiles: lineMergedTiles };
     }
 
     function boardsAreDifferent(a, b) {
@@ -574,14 +635,78 @@
       overlayElement.classList.remove("show");
     }
 
-    function triggerBoardBump() {
-      boardElement.classList.remove("bump");
-      void boardElement.offsetWidth;
-      boardElement.classList.add("bump");
-    }
-
     function getCellKey(row, col) {
       return `${row}-${col}`;
+    }
+
+    function positionsMatch(a, b) {
+      return a[0] === b[0] && a[1] === b[1];
+    }
+
+    function animateMoves(moves, onComplete) {
+      motionLayerElement.innerHTML = "";
+      const cellRects = getCellRects();
+      let pendingAnimations = 0;
+
+      for (const moveItem of moves) {
+        const fromKey = getCellKey(...moveItem.from);
+        const toKey = getCellKey(...moveItem.to);
+        const fromRect = cellRects.get(fromKey);
+        const toRect = cellRects.get(toKey);
+
+        if (!fromRect || !toRect) {
+          continue;
+        }
+
+        const movingTile = document.createElement("div");
+        movingTile.className = "cell motion-tile";
+        movingTile.dataset.value = String(moveItem.value);
+        movingTile.textContent = String(moveItem.value);
+        movingTile.style.left = `${fromRect.left}px`;
+        movingTile.style.top = `${fromRect.top}px`;
+        movingTile.style.width = `${fromRect.width}px`;
+        movingTile.style.height = `${fromRect.height}px`;
+        motionLayerElement.appendChild(movingTile);
+        pendingAnimations += 1;
+
+        requestAnimationFrame(() => {
+          movingTile.style.transform = `translate(${toRect.left - fromRect.left}px, ${toRect.top - fromRect.top}px)`;
+        });
+
+        window.setTimeout(() => {
+          movingTile.remove();
+          pendingAnimations -= 1;
+
+          if (pendingAnimations === 0) {
+            motionLayerElement.innerHTML = "";
+            onComplete();
+          }
+        }, animationDuration + 20);
+      }
+
+      if (pendingAnimations === 0) {
+        onComplete();
+      }
+    }
+
+    function getCellRects() {
+      const boardRect = boardElement.getBoundingClientRect();
+      const rects = new Map();
+
+      Array.from(boardElement.children).forEach((cell, index) => {
+        const row = Math.floor(index / size);
+        const col = index % size;
+        const rect = cell.getBoundingClientRect();
+
+        rects.set(getCellKey(row, col), {
+          left: rect.left - boardRect.left,
+          top: rect.top - boardRect.top,
+          width: rect.width,
+          height: rect.height
+        });
+      });
+
+      return rects;
     }
 
     init();
