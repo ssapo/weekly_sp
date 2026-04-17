@@ -363,6 +363,71 @@
       text-align: center;
     }
 
+    .ranking-panel {
+      margin-top: 18px;
+      padding: 18px;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.7);
+      box-shadow: 0 20px 40px -30px var(--shadow);
+    }
+
+    .ranking-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .ranking-title {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .ranking-button {
+      padding: 11px 14px;
+      font-size: 14px;
+    }
+
+    .ranking-button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .name-input {
+      width: 100%;
+      border: 0;
+      border-radius: 14px;
+      padding: 12px 14px;
+      background: rgba(255, 255, 255, 0.82);
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 700;
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
+      outline: none;
+    }
+
+    .ranking-status {
+      margin: 12px 0 0;
+      font-size: 13px;
+      line-height: 1.5;
+      opacity: 0.8;
+    }
+
+    .leaderboard {
+      margin: 14px 0 0;
+      padding: 0 0 0 20px;
+    }
+
+    .leaderboard li {
+      margin: 8px 0;
+      font-size: 14px;
+      line-height: 1.4;
+      font-weight: 700;
+    }
+
     @keyframes tile-pop {
       0% {
         opacity: 0;
@@ -454,8 +519,21 @@
     </section>
 
     <p class="hint">Use arrow keys on desktop or swipe on mobile.</p>
+
+    <section class="ranking-panel">
+      <div class="ranking-head">
+        <h2 class="ranking-title">Online Ranking</h2>
+        <button id="save-score" class="ranking-button" type="button">Save Score</button>
+      </div>
+      <input id="player-name" class="name-input" type="text" maxlength="16" placeholder="Enter your ranking name">
+      <p id="ranking-status" class="ranking-status">Online ranking is not connected yet.</p>
+      <ol id="leaderboard" class="leaderboard"></ol>
+    </section>
   </main>
 
+  <script>
+    window.__RANKING_API_BASE__ = "";
+  </script>
   <script>
     const size = 4;
     const boardElement = document.getElementById("board");
@@ -470,9 +548,16 @@
     const restartButton = document.getElementById("restart");
     const retryButton = document.getElementById("retry");
     const themeSelect = document.getElementById("theme-select");
+    const saveScoreButton = document.getElementById("save-score");
+    const playerNameInput = document.getElementById("player-name");
+    const rankingStatusElement = document.getElementById("ranking-status");
+    const leaderboardElement = document.getElementById("leaderboard");
     const animationDuration = 150;
     const themeStorageKey = "2048-theme";
     const soundStorageKey = "2048-sound-enabled";
+    const playerIdStorageKey = "2048-player-id";
+    const playerNameStorageKey = "2048-player-name";
+    const rankingApiBase = window.__RANKING_API_BASE__ || "";
 
     let board = [];
     let score = 0;
@@ -492,11 +577,14 @@
     let clockIntervalId = null;
     let gameStartTime = Date.now();
     let turnStartTime = Date.now();
+    let gameFinished = false;
+    let playerId = "";
 
     function init() {
       bestElement.textContent = best;
       loadTheme();
       loadSoundPreference();
+      initRanking();
       startGame();
       bindEvents();
       startClock();
@@ -510,6 +598,7 @@
       mergedTiles = new Set();
       settlingTiles = new Set();
       isAnimating = false;
+      gameFinished = false;
       motionLayerElement.innerHTML = "";
       gameStartTime = Date.now();
       turnStartTime = Date.now();
@@ -517,6 +606,7 @@
       addRandomTile();
       hideMessage();
       render();
+      updateSaveButtonState();
     }
 
     function bindEvents() {
@@ -524,6 +614,8 @@
       restartButton.addEventListener("click", startGame);
       retryButton.addEventListener("click", startGame);
       themeSelect.addEventListener("change", (event) => applyTheme(event.target.value));
+      saveScoreButton.addEventListener("click", saveScore);
+      playerNameInput.addEventListener("input", handlePlayerNameInput);
 
       boardElement.addEventListener("touchstart", (event) => {
         ensureAudioReady();
@@ -809,6 +901,8 @@
       messageTitleElement.textContent = title;
       messageTextElement.textContent = text;
       overlayElement.classList.add("show");
+      gameFinished = true;
+      updateSaveButtonState();
     }
 
     function hideMessage() {
@@ -852,6 +946,105 @@
       const turnSeconds = Math.floor((now - turnStartTime) / 1000);
       timePlayedElement.textContent = `${playedSeconds}s`;
       turnTimeElement.textContent = `${turnSeconds}s`;
+    }
+
+    function initRanking() {
+      playerId = localStorage.getItem(playerIdStorageKey) || createPlayerId();
+      localStorage.setItem(playerIdStorageKey, playerId);
+      playerNameInput.value = localStorage.getItem(playerNameStorageKey) || "";
+
+      if (!rankingApiBase) {
+        rankingStatusElement.textContent = "Online ranking API is not configured yet.";
+        saveScoreButton.disabled = true;
+        return;
+      }
+
+      rankingStatusElement.textContent = "Finish a run, then save your best score.";
+      loadLeaderboard();
+      updateSaveButtonState();
+    }
+
+    function handlePlayerNameInput() {
+      localStorage.setItem(playerNameStorageKey, playerNameInput.value.trim());
+      updateSaveButtonState();
+    }
+
+    function updateSaveButtonState() {
+      const hasName = playerNameInput.value.trim().length >= 2;
+      saveScoreButton.disabled = !rankingApiBase || !gameFinished || !hasName;
+    }
+
+    async function saveScore() {
+      const displayName = playerNameInput.value.trim();
+      if (!rankingApiBase || !gameFinished || displayName.length < 2) {
+        return;
+      }
+
+      rankingStatusElement.textContent = "Saving score...";
+      saveScoreButton.disabled = true;
+
+      try {
+        const response = await fetch(`${rankingApiBase}/scores`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            playerId,
+            displayName,
+            score
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error("save failed");
+        }
+
+        localStorage.setItem(playerNameStorageKey, displayName);
+        rankingStatusElement.textContent = "Score saved. Leaderboard updated.";
+        await loadLeaderboard();
+      } catch (error) {
+        rankingStatusElement.textContent = "Could not save score. Check the ranking API setup.";
+      } finally {
+        updateSaveButtonState();
+      }
+    }
+
+    async function loadLeaderboard() {
+      if (!rankingApiBase) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`${rankingApiBase}/leaderboard?limit=10`);
+        if (!response.ok) {
+          throw new Error("leaderboard failed");
+        }
+
+        const data = await response.json();
+        renderLeaderboard(data.entries || []);
+      } catch (error) {
+        rankingStatusElement.textContent = "Could not load leaderboard.";
+      }
+    }
+
+    function renderLeaderboard(entries) {
+      leaderboardElement.innerHTML = "";
+
+      if (entries.length === 0) {
+        const item = document.createElement("li");
+        item.textContent = "No scores yet.";
+        leaderboardElement.appendChild(item);
+        return;
+      }
+
+      entries.forEach((entry, index) => {
+        const item = document.createElement("li");
+        item.textContent = `${index + 1}. ${entry.displayName} - ${entry.bestScore}`;
+        leaderboardElement.appendChild(item);
+      });
+    }
+
+    function createPlayerId() {
+      return `player-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
     }
 
     function ensureAudioReady() {
