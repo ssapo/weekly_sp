@@ -356,6 +356,52 @@
       line-height: 1.5;
     }
 
+    .overlay-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: stretch;
+      min-width: min(100%, 280px);
+    }
+
+    .overlay-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .overlay-save {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .overlay-save.show {
+      display: flex;
+    }
+
+    .overlay-name-input {
+      width: 100%;
+      border: 0;
+      border-radius: 14px;
+      padding: 12px 14px;
+      background: rgba(255, 255, 255, 0.9);
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 700;
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+      outline: none;
+    }
+
+    .overlay-status {
+      margin: 0;
+      min-height: 20px;
+      font-size: 13px;
+      line-height: 1.4;
+      opacity: 0.85;
+    }
+
     .hint {
       margin-top: 14px;
       font-size: 14px;
@@ -513,7 +559,16 @@
         <div class="message-box">
           <h2 id="message-title"></h2>
           <p id="message-text"></p>
-          <button id="retry" type="button">Play Again</button>
+          <div id="overlay-save" class="overlay-save">
+            <input id="overlay-player-name" class="overlay-name-input" type="text" maxlength="16" placeholder="Enter your ranking name">
+            <p id="overlay-ranking-status" class="overlay-status"></p>
+          </div>
+          <div class="overlay-actions">
+            <div class="overlay-row">
+              <button id="retry" type="button">Play Again</button>
+              <button id="overlay-save-score" class="ranking-button" type="button">Save Score</button>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -523,9 +578,7 @@
     <section class="ranking-panel">
       <div class="ranking-head">
         <h2 class="ranking-title">Online Ranking</h2>
-        <button id="save-score" class="ranking-button" type="button">Save Score</button>
       </div>
-      <input id="player-name" class="name-input" type="text" maxlength="16" placeholder="Enter your ranking name">
       <p id="ranking-status" class="ranking-status">Online ranking is not connected yet.</p>
       <ol id="leaderboard" class="leaderboard"></ol>
     </section>
@@ -548,14 +601,15 @@
     const restartButton = document.getElementById("restart");
     const retryButton = document.getElementById("retry");
     const themeSelect = document.getElementById("theme-select");
-    const saveScoreButton = document.getElementById("save-score");
-    const playerNameInput = document.getElementById("player-name");
+    const overlaySaveWrap = document.getElementById("overlay-save");
+    const overlayPlayerNameInput = document.getElementById("overlay-player-name");
+    const overlayRankingStatusElement = document.getElementById("overlay-ranking-status");
+    const overlaySaveScoreButton = document.getElementById("overlay-save-score");
     const rankingStatusElement = document.getElementById("ranking-status");
     const leaderboardElement = document.getElementById("leaderboard");
     const animationDuration = 150;
     const themeStorageKey = "2048-theme";
     const soundStorageKey = "2048-sound-enabled";
-    const playerIdStorageKey = "2048-player-id";
     const playerNameStorageKey = "2048-player-name";
     const rankingApiBase = window.__RANKING_API_BASE__ || "";
 
@@ -578,8 +632,6 @@
     let gameStartTime = Date.now();
     let turnStartTime = Date.now();
     let gameFinished = false;
-    let playerId = "";
-
     function init() {
       bestElement.textContent = best;
       loadTheme();
@@ -588,6 +640,7 @@
       startGame();
       bindEvents();
       startClock();
+      attemptAutoplayBgm();
     }
 
     function startGame() {
@@ -614,8 +667,15 @@
       restartButton.addEventListener("click", startGame);
       retryButton.addEventListener("click", startGame);
       themeSelect.addEventListener("change", (event) => applyTheme(event.target.value));
-      saveScoreButton.addEventListener("click", saveScore);
-      playerNameInput.addEventListener("input", handlePlayerNameInput);
+      overlaySaveScoreButton.addEventListener("click", saveScore);
+      overlayPlayerNameInput.addEventListener("input", handlePlayerNameInput);
+      window.addEventListener("pointerdown", attemptAutoplayBgm, { passive: true });
+      window.addEventListener("load", attemptAutoplayBgm, { once: true });
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+          attemptAutoplayBgm();
+        }
+      });
 
       boardElement.addEventListener("touchstart", (event) => {
         ensureAudioReady();
@@ -901,12 +961,23 @@
       messageTitleElement.textContent = title;
       messageTextElement.textContent = text;
       overlayElement.classList.add("show");
-      gameFinished = true;
+      gameFinished = title === "Game Over";
+      overlaySaveWrap.classList.toggle("show", gameFinished);
+
+      if (gameFinished) {
+        overlayPlayerNameInput.value = localStorage.getItem(playerNameStorageKey) || "";
+        overlayRankingStatusElement.textContent = "Save this score or start a new run.";
+      } else {
+        overlayRankingStatusElement.textContent = "";
+      }
+
       updateSaveButtonState();
     }
 
     function hideMessage() {
       overlayElement.classList.remove("show");
+      overlaySaveWrap.classList.remove("show");
+      overlayRankingStatusElement.textContent = "";
     }
 
     function getCellKey(row, col) {
@@ -949,46 +1020,47 @@
     }
 
     function initRanking() {
-      playerId = localStorage.getItem(playerIdStorageKey) || createPlayerId();
-      localStorage.setItem(playerIdStorageKey, playerId);
-      playerNameInput.value = localStorage.getItem(playerNameStorageKey) || "";
+      overlayPlayerNameInput.value = localStorage.getItem(playerNameStorageKey) || "";
 
       if (!rankingApiBase) {
         rankingStatusElement.textContent = "Online ranking API is not configured yet.";
-        saveScoreButton.disabled = true;
+        overlayRankingStatusElement.textContent = "Ranking is offline right now.";
+        overlaySaveScoreButton.disabled = true;
         return;
       }
 
-      rankingStatusElement.textContent = "Finish a run, then save your best score.";
+      rankingStatusElement.textContent = "When the game ends, save your score from the popup.";
       loadLeaderboard();
       updateSaveButtonState();
     }
 
     function handlePlayerNameInput() {
-      localStorage.setItem(playerNameStorageKey, playerNameInput.value.trim());
+      const displayName = overlayPlayerNameInput.value.trim();
+      localStorage.setItem(playerNameStorageKey, displayName);
       updateSaveButtonState();
     }
 
     function updateSaveButtonState() {
-      const hasName = playerNameInput.value.trim().length >= 2;
-      saveScoreButton.disabled = !rankingApiBase || !gameFinished || !hasName;
+      const hasName = overlayPlayerNameInput.value.trim().length >= 2;
+      overlaySaveScoreButton.disabled = !rankingApiBase || !gameFinished || !hasName;
     }
 
     async function saveScore() {
-      const displayName = playerNameInput.value.trim();
+      const displayName = overlayPlayerNameInput.value.trim();
       if (!rankingApiBase || !gameFinished || displayName.length < 2) {
         return;
       }
 
       rankingStatusElement.textContent = "Saving score...";
-      saveScoreButton.disabled = true;
+      overlayRankingStatusElement.textContent = "Saving score...";
+      overlaySaveScoreButton.disabled = true;
 
       try {
         const response = await fetch(`${rankingApiBase}/scores`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            playerId,
+            playerId: createPlayerId(displayName),
             displayName,
             score
           })
@@ -1000,9 +1072,11 @@
 
         localStorage.setItem(playerNameStorageKey, displayName);
         rankingStatusElement.textContent = "Score saved. Leaderboard updated.";
+        overlayRankingStatusElement.textContent = "Saved. You can play again anytime.";
         await loadLeaderboard();
       } catch (error) {
         rankingStatusElement.textContent = "Could not save score. Check the ranking API setup.";
+        overlayRankingStatusElement.textContent = "Could not save score right now.";
       } finally {
         updateSaveButtonState();
       }
@@ -1043,8 +1117,18 @@
       });
     }
 
-    function createPlayerId() {
-      return `player-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    function createPlayerId(displayName) {
+      const normalized = displayName
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, "-")
+        .replace(/[^a-z0-9가-힣_-]/g, "");
+      return `name-${normalized || "guest"}`;
+    }
+
+    function attemptAutoplayBgm() {
+      ensureAudioReady();
+      startBgm();
     }
 
     function ensureAudioReady() {
@@ -1094,12 +1178,12 @@
       }
 
       if (isMerge) {
-        playTone(540, 0.06, "triangle", 0.024, 0);
-        playTone(720, 0.08, "triangle", 0.018, 0.04);
+        playTone(540, 0.06, "triangle", 0.048, 0);
+        playTone(720, 0.08, "triangle", 0.036, 0.04);
         return;
       }
 
-      playTone(300, 0.035, "square", 0.016, 0);
+      playTone(300, 0.035, "square", 0.032, 0);
     }
 
     function playWinSound() {
@@ -1112,9 +1196,9 @@
         return;
       }
 
-      playTone(660, 0.09, "triangle", 0.022, 0);
-      playTone(880, 0.11, "triangle", 0.018, 0.08);
-      playTone(1040, 0.13, "triangle", 0.015, 0.16);
+      playTone(660, 0.09, "triangle", 0.044, 0);
+      playTone(880, 0.11, "triangle", 0.036, 0.08);
+      playTone(1040, 0.13, "triangle", 0.03, 0.16);
     }
 
     function startBgm() {
@@ -1152,8 +1236,8 @@
       ];
 
       const [root, top] = pattern[bgmStep % pattern.length];
-      playTone(root, 0.34, "sine", 0.024, 0);
-      playTone(top, 0.26, "triangle", 0.0135, 0.08);
+      playTone(root, 0.34, "sine", 0.048, 0);
+      playTone(top, 0.26, "triangle", 0.027, 0.08);
       bgmStep += 1;
     }
 
