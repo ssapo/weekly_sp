@@ -154,19 +154,20 @@
 
     .app {
       width: min(94vw, 760px);
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 146px;
-      column-gap: 16px;
-      row-gap: 12px;
-      align-items: start;
     }
 
     .header {
-      grid-column: 1 / -1;
       display: grid;
       grid-template-columns: minmax(0, 1fr) 146px;
       gap: 16px;
-      margin-bottom: 0;
+      margin-bottom: 12px;
+      align-items: start;
+    }
+
+    .intro-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
 
     .title {
@@ -239,8 +240,6 @@
     }
 
     .board-wrap {
-      grid-column: 1 / -1;
-      grid-row: 3;
       position: relative;
       margin-top: 0;
     }
@@ -410,9 +409,7 @@
     }
 
     .hint {
-      grid-column: 1 / -1;
-      grid-row: 4;
-      margin-top: 0;
+      margin-top: 10px;
       font-size: 12px;
       line-height: 1.4;
       text-align: center;
@@ -420,8 +417,6 @@
     }
 
     .ranking-panel {
-      grid-column: 1;
-      grid-row: 2;
       margin-top: 0;
       padding: 14px 14px 12px;
       border-radius: 22px;
@@ -439,6 +434,35 @@
 
     .ranking-title {
       margin: 0;
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .ladder-meta {
+      display: flex;
+      align-items: stretch;
+      gap: 8px;
+    }
+
+    .ladder-stat {
+      min-width: 70px;
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: rgba(191, 177, 160, 0.18);
+      text-align: right;
+    }
+
+    .ladder-stat span {
+      display: block;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      opacity: 0.7;
+    }
+
+    .ladder-stat strong {
+      display: block;
+      margin-top: 4px;
       font-size: 20px;
       line-height: 1;
     }
@@ -542,7 +566,6 @@
     @media (max-width: 560px) {
       .app {
         width: min(92vw, 520px);
-        display: block;
       }
 
       .header {
@@ -555,6 +578,10 @@
         width: 100%;
         min-width: 0;
       }
+
+      .intro-panel {
+        gap: 10px;
+      }
     }
 
     @media (max-height: 940px), (max-width: 560px) {
@@ -564,7 +591,6 @@
 
       .app {
         width: min(94vw, 480px);
-        display: block;
       }
 
       .header {
@@ -647,6 +673,19 @@
         font-size: 17px;
       }
 
+      .ladder-meta {
+        gap: 6px;
+      }
+
+      .ladder-stat {
+        min-width: 60px;
+        padding: 7px 8px;
+      }
+
+      .ladder-stat strong {
+        font-size: 17px;
+      }
+
       .ranking-status {
         margin-top: 6px;
         font-size: 11px;
@@ -669,20 +708,29 @@
 <body>
   <main class="app">
     <section class="header">
-      <div>
+      <div class="intro-panel">
         <h1 class="title">2048</h1>
         <p class="subtitle">Join the tiles and make the 2048 tile.</p>
+        <section class="ranking-panel">
+          <div class="ranking-head">
+            <h2 class="ranking-title">Ladder</h2>
+            <div class="ladder-meta">
+              <div class="ladder-stat">
+                <span>SCORE</span>
+                <strong id="score">0</strong>
+              </div>
+              <div class="ladder-stat">
+                <span>BEST</span>
+                <strong id="best">0</strong>
+              </div>
+            </div>
+          </div>
+          <p id="ranking-status" class="ranking-status">Online ranking is not connected yet.</p>
+          <ul id="leaderboard" class="leaderboard"></ul>
+        </section>
       </div>
       <div class="controls">
         <div class="scores">
-          <div class="score-box">
-            <span>SCORE</span>
-            <strong id="score">0</strong>
-          </div>
-          <div class="score-box">
-            <span>BEST</span>
-            <strong id="best">0</strong>
-          </div>
           <div class="score-box">
             <span>TIME</span>
             <strong id="time-played">0s</strong>
@@ -725,14 +773,6 @@
     </section>
 
     <p class="hint">Use arrow keys on desktop or swipe on mobile.</p>
-
-    <section class="ranking-panel">
-      <div class="ranking-head">
-        <h2 class="ranking-title">Online Ranking</h2>
-      </div>
-      <p id="ranking-status" class="ranking-status">Online ranking is not connected yet.</p>
-      <ul id="leaderboard" class="leaderboard"></ul>
-    </section>
   </main>
 
   <script>
