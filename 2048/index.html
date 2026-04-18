@@ -154,9 +154,15 @@
 
     .app {
       width: min(96vw, 780px);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 128px;
+      column-gap: 14px;
+      row-gap: 10px;
+      align-items: start;
     }
 
     .header {
+      grid-column: 1 / -1;
       display: grid;
       grid-template-columns: minmax(0, 1fr) 128px;
       gap: 14px;
@@ -271,6 +277,8 @@
     }
 
     .board-wrap {
+      grid-column: 1 / -1;
+      grid-row: 3;
       position: relative;
       margin-top: 0;
     }
@@ -440,7 +448,8 @@
     }
 
     .hint {
-      margin-top: 10px;
+      grid-column: 1 / -1;
+      margin-top: 0;
       font-size: 12px;
       line-height: 1.4;
       text-align: center;
@@ -448,6 +457,8 @@
     }
 
     .ranking-panel {
+      grid-column: 1;
+      grid-row: 2;
       margin-top: 0;
       padding: 13px 13px 11px;
       border-radius: 18px;
@@ -672,6 +683,7 @@
     @media (max-width: 560px) {
       .app {
         width: min(92vw, 520px);
+        display: block;
       }
 
       .header {
@@ -698,6 +710,7 @@
 
       .app {
         width: min(94vw, 480px);
+        display: block;
       }
 
       .header {
@@ -778,6 +791,8 @@
       .ranking-panel {
         margin-top: 9px;
         padding: 11px 12px 10px;
+        background: rgba(255, 255, 255, 0.62);
+        box-shadow: inset 0 0 0 1px rgba(143, 122, 102, 0.06);
       }
 
       .ranking-head {
@@ -844,26 +859,6 @@
       <div class="intro-panel">
         <h1 class="title">2048</h1>
         <p class="subtitle">Join the tiles and make the 2048 tile.</p>
-        <section class="ranking-panel">
-          <div class="ranking-head">
-            <div class="ranking-copy">
-              <span class="ranking-kicker">Top 3</span>
-              <h2 class="ranking-title">Ladder</h2>
-            </div>
-            <div class="ladder-meta">
-              <div class="ladder-stat">
-                <span>SCORE</span>
-                <strong id="score">0</strong>
-              </div>
-              <div class="ladder-stat">
-                <span>BEST</span>
-                <strong id="best">0</strong>
-              </div>
-            </div>
-          </div>
-          <p id="ranking-status" class="ranking-status">Online ranking is not connected yet.</p>
-          <ul id="leaderboard" class="leaderboard"></ul>
-        </section>
       </div>
       <div class="controls">
         <span class="controls-kicker">Session</span>
@@ -905,6 +900,27 @@
           </div>
         </div>
       </div>
+    </section>
+
+    <section class="ranking-panel">
+      <div class="ranking-head">
+        <div class="ranking-copy">
+          <span class="ranking-kicker">Top 3</span>
+          <h2 class="ranking-title">Ladder</h2>
+        </div>
+        <div class="ladder-meta">
+          <div class="ladder-stat">
+            <span>SCORE</span>
+            <strong id="score">0</strong>
+          </div>
+          <div class="ladder-stat">
+            <span>BEST</span>
+            <strong id="best">0</strong>
+          </div>
+        </div>
+      </div>
+      <p id="ranking-status" class="ranking-status">Online ranking is not connected yet.</p>
+      <ul id="leaderboard" class="leaderboard"></ul>
     </section>
 
     <p class="hint">Use arrow keys on desktop or swipe on mobile.</p>
