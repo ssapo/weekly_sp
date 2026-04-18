@@ -195,7 +195,7 @@
     .scores {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 10px;
+      gap: 8px;
     }
 
     .score-box {
@@ -220,6 +220,21 @@
       margin-top: 6px;
       font-size: 26px;
       line-height: 1;
+    }
+
+    .timer-box {
+      padding: 8px 10px;
+      border-radius: 12px;
+    }
+
+    .timer-box span {
+      font-size: 10px;
+      letter-spacing: 0.06em;
+    }
+
+    .timer-box strong {
+      margin-top: 4px;
+      font-size: 20px;
     }
 
     button {
@@ -504,7 +519,7 @@
       list-style: none;
       display: grid;
       gap: 8px;
-      max-height: 166px;
+      max-height: 138px;
       overflow: auto;
     }
 
@@ -613,7 +628,7 @@
       }
 
       .scores {
-        gap: 8px;
+        gap: 6px;
       }
 
       .score-box {
@@ -628,6 +643,18 @@
       .score-box strong {
         margin-top: 4px;
         font-size: 22px;
+      }
+
+      .timer-box {
+        padding: 7px 8px;
+      }
+
+      .timer-box span {
+        font-size: 9px;
+      }
+
+      .timer-box strong {
+        font-size: 17px;
       }
 
       button {
@@ -694,7 +721,7 @@
       .leaderboard {
         margin-top: 8px;
         gap: 6px;
-        max-height: 118px;
+        max-height: 104px;
       }
 
       .leaderboard li {
@@ -729,13 +756,13 @@
           <ul id="leaderboard" class="leaderboard"></ul>
         </section>
       </div>
-      <div class="controls">
+        <div class="controls">
         <div class="scores">
-          <div class="score-box">
+          <div class="score-box timer-box">
             <span>TIME</span>
             <strong id="time-played">0s</strong>
           </div>
-          <div class="score-box">
+          <div class="score-box timer-box">
             <span>TURN</span>
             <strong id="turn-time">0s</strong>
           </div>
@@ -1279,7 +1306,7 @@
       }
 
       try {
-        const response = await fetch(`${rankingApiBase}/leaderboard?limit=10`);
+        const response = await fetch(`${rankingApiBase}/leaderboard?limit=3`);
         if (!response.ok) {
           throw new Error("leaderboard failed");
         }
