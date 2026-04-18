@@ -153,15 +153,20 @@
     }
 
     .app {
-      width: min(92vw, 520px);
+      width: min(94vw, 760px);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 146px;
+      column-gap: 16px;
+      row-gap: 12px;
+      align-items: start;
     }
 
     .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 146px;
       gap: 16px;
-      margin-bottom: 18px;
+      margin-bottom: 0;
     }
 
     .title {
@@ -183,7 +188,7 @@
       flex-direction: column;
       gap: 10px;
       align-items: stretch;
-      min-width: 140px;
+      min-width: 146px;
     }
 
     .scores {
@@ -234,8 +239,10 @@
     }
 
     .board-wrap {
+      grid-column: 1 / -1;
+      grid-row: 3;
       position: relative;
-      margin-top: 10px;
+      margin-top: 0;
     }
 
     .theme-picker {
@@ -403,7 +410,9 @@
     }
 
     .hint {
-      margin-top: 10px;
+      grid-column: 1 / -1;
+      grid-row: 4;
+      margin-top: 0;
       font-size: 12px;
       line-height: 1.4;
       text-align: center;
@@ -411,7 +420,9 @@
     }
 
     .ranking-panel {
-      margin-top: 12px;
+      grid-column: 1;
+      grid-row: 2;
+      margin-top: 0;
       padding: 14px 14px 12px;
       border-radius: 22px;
       background: rgba(255, 255, 255, 0.7);
@@ -529,12 +540,20 @@
     }
 
     @media (max-width: 560px) {
+      .app {
+        width: min(92vw, 520px);
+        display: block;
+      }
+
       .header {
+        display: flex;
         flex-direction: column;
+        margin-bottom: 18px;
       }
 
       .controls {
         width: 100%;
+        min-width: 0;
       }
     }
 
@@ -545,9 +564,11 @@
 
       .app {
         width: min(94vw, 480px);
+        display: block;
       }
 
       .header {
+        display: flex;
         gap: 10px;
         margin-bottom: 10px;
       }
