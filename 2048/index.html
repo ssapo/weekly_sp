@@ -153,21 +153,21 @@
     }
 
     .app {
-      width: min(94vw, 760px);
+      width: min(96vw, 780px);
     }
 
     .header {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 146px;
-      gap: 16px;
-      margin-bottom: 12px;
+      grid-template-columns: minmax(0, 1fr) 128px;
+      gap: 14px;
+      margin-bottom: 10px;
       align-items: start;
     }
 
     .intro-panel {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
     }
 
     .title {
@@ -179,17 +179,18 @@
     }
 
     .subtitle {
-      margin: 10px 0 0;
-      font-size: 15px;
-      line-height: 1.5;
+      margin: 8px 0 0;
+      font-size: 14px;
+      line-height: 1.45;
+      opacity: 0.88;
     }
 
     .controls {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 8px;
       align-items: stretch;
-      min-width: 146px;
+      min-width: 128px;
     }
 
     .scores {
@@ -201,8 +202,8 @@
     .score-box {
       background: var(--panel);
       color: var(--light);
-      border-radius: 14px;
-      padding: 10px 12px;
+      border-radius: 12px;
+      padding: 8px 10px;
       text-align: center;
       box-shadow: 0 10px 24px -18px var(--shadow);
     }
@@ -217,13 +218,13 @@
 
     .score-box strong {
       display: block;
-      margin-top: 6px;
-      font-size: 26px;
+      margin-top: 4px;
+      font-size: 20px;
       line-height: 1;
     }
 
     .timer-box {
-      padding: 8px 10px;
+      padding: 7px 9px;
       border-radius: 12px;
     }
 
@@ -234,7 +235,7 @@
 
     .timer-box strong {
       margin-top: 4px;
-      font-size: 20px;
+      font-size: 18px;
     }
 
     button {
@@ -262,11 +263,11 @@
     .theme-picker {
       width: 100%;
       border: 0;
-      border-radius: 14px;
-      padding: 12px 14px;
+      border-radius: 12px;
+      padding: 10px 12px;
       background: rgba(255, 255, 255, 0.72);
       color: var(--text);
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 700;
       box-shadow: 0 10px 24px -18px var(--shadow);
       outline: none;
@@ -380,14 +381,14 @@
     .overlay-actions {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
       align-items: stretch;
-      min-width: min(100%, 280px);
+      min-width: min(100%, 220px);
     }
 
     .overlay-row {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr;
       gap: 10px;
     }
 
@@ -433,8 +434,8 @@
 
     .ranking-panel {
       margin-top: 0;
-      padding: 14px 14px 12px;
-      border-radius: 22px;
+      padding: 12px 12px 10px;
+      border-radius: 18px;
       background: rgba(255, 255, 255, 0.7);
       box-shadow: 0 20px 40px -30px var(--shadow);
     }
@@ -586,7 +587,7 @@
       .header {
         display: flex;
         flex-direction: column;
-        margin-bottom: 18px;
+        margin-bottom: 14px;
       }
 
       .controls {
@@ -623,8 +624,8 @@
       }
 
       .controls {
-        gap: 8px;
-        min-width: 132px;
+        gap: 7px;
+        min-width: 0;
       }
 
       .scores {
@@ -655,11 +656,6 @@
 
       .timer-box strong {
         font-size: 17px;
-      }
-
-      button {
-        padding: 11px 14px;
-        font-size: 14px;
       }
 
       .theme-picker {
@@ -756,7 +752,7 @@
           <ul id="leaderboard" class="leaderboard"></ul>
         </section>
       </div>
-        <div class="controls">
+      <div class="controls">
         <div class="scores">
           <div class="score-box timer-box">
             <span>TIME</span>
@@ -774,7 +770,6 @@
           <option value="lime">Lime</option>
           <option value="midnight">Midnight</option>
         </select>
-        <button id="restart" type="button">New Game</button>
       </div>
     </section>
 
@@ -791,7 +786,6 @@
           </div>
           <div class="overlay-actions">
             <div class="overlay-row">
-              <button id="retry" type="button">Play Again</button>
               <button id="overlay-save-score" class="ranking-button" type="button">Save Score</button>
             </div>
           </div>
@@ -816,8 +810,6 @@
     const motionLayerElement = document.getElementById("motion-layer");
     const messageTitleElement = document.getElementById("message-title");
     const messageTextElement = document.getElementById("message-text");
-    const restartButton = document.getElementById("restart");
-    const retryButton = document.getElementById("retry");
     const themeSelect = document.getElementById("theme-select");
     const overlaySaveWrap = document.getElementById("overlay-save");
     const overlayPlayerNameInput = document.getElementById("overlay-player-name");
@@ -882,8 +874,6 @@
 
     function bindEvents() {
       window.addEventListener("keydown", handleKeyDown);
-      restartButton.addEventListener("click", startGame);
-      retryButton.addEventListener("click", startGame);
       themeSelect.addEventListener("change", (event) => applyTheme(event.target.value));
       overlaySaveScoreButton.addEventListener("click", saveScore);
       overlayPlayerNameInput.addEventListener("input", handlePlayerNameInput);
@@ -1124,7 +1114,7 @@
           if (combined === 2048 && !hasWon) {
             hasWon = true;
             playWinSound();
-            showMessage("You Win!", "Nice work. Keep going for a higher score.");
+            rankingStatusElement.textContent = "2048 reached. Keep going for a higher score.";
           }
         } else {
           merged.push(values[index].value);
@@ -1150,7 +1140,7 @@
         return;
       }
 
-      showMessage("Game Over", "No more moves left. Start a new run and beat your best score.");
+      showMessage("Game Over", "No more moves left. Save your score, then refresh the page for a new run.");
     }
 
     function canMove() {
@@ -1290,7 +1280,7 @@
 
         localStorage.setItem(playerNameStorageKey, displayName);
         rankingStatusElement.textContent = "Score saved. Leaderboard updated.";
-        overlayRankingStatusElement.textContent = "Saved. You can play again anytime.";
+        overlayRankingStatusElement.textContent = "Saved. Refresh whenever you want a new run.";
         await loadLeaderboard();
       } catch (error) {
         rankingStatusElement.textContent = "Could not save score. Check the ranking API setup.";
