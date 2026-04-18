@@ -403,15 +403,16 @@
     }
 
     .hint {
-      margin-top: 14px;
-      font-size: 14px;
-      line-height: 1.5;
+      margin-top: 10px;
+      font-size: 12px;
+      line-height: 1.4;
       text-align: center;
+      opacity: 0.78;
     }
 
     .ranking-panel {
-      margin-top: 18px;
-      padding: 18px;
+      margin-top: 12px;
+      padding: 14px 14px 12px;
       border-radius: 22px;
       background: rgba(255, 255, 255, 0.7);
       box-shadow: 0 20px 40px -30px var(--shadow);
@@ -422,12 +423,12 @@
       align-items: center;
       justify-content: space-between;
       gap: 12px;
-      margin-bottom: 12px;
+      margin-bottom: 8px;
     }
 
     .ranking-title {
       margin: 0;
-      font-size: 22px;
+      font-size: 20px;
       line-height: 1;
     }
 
@@ -456,22 +457,45 @@
     }
 
     .ranking-status {
-      margin: 12px 0 0;
-      font-size: 13px;
-      line-height: 1.5;
+      margin: 8px 0 0;
+      font-size: 12px;
+      line-height: 1.35;
       opacity: 0.8;
     }
 
     .leaderboard {
-      margin: 14px 0 0;
-      padding: 0 0 0 20px;
+      margin: 10px 0 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 8px;
+      max-height: 166px;
+      overflow: auto;
     }
 
     .leaderboard li {
-      margin: 8px 0;
       font-size: 14px;
-      line-height: 1.4;
+      line-height: 1.3;
       font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.72);
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+    }
+
+    .leaderboard-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .leaderboard-score {
+      flex-shrink: 0;
+      opacity: 0.86;
     }
 
     @keyframes tile-pop {
@@ -580,7 +604,7 @@
         <h2 class="ranking-title">Online Ranking</h2>
       </div>
       <p id="ranking-status" class="ranking-status">Online ranking is not connected yet.</p>
-      <ol id="leaderboard" class="leaderboard"></ol>
+      <ul id="leaderboard" class="leaderboard"></ul>
     </section>
   </main>
 
@@ -1110,9 +1134,15 @@
         return;
       }
 
-      entries.forEach((entry, index) => {
+      entries.forEach((entry) => {
         const item = document.createElement("li");
-        item.textContent = `${index + 1}. ${entry.displayName} - ${entry.bestScore}`;
+        const name = document.createElement("span");
+        const scoreValue = document.createElement("span");
+        name.className = "leaderboard-name";
+        scoreValue.className = "leaderboard-score";
+        name.textContent = entry.displayName;
+        scoreValue.textContent = String(entry.bestScore);
+        item.append(name, scoreValue);
         leaderboardElement.appendChild(item);
       });
     }
