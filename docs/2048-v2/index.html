@@ -537,6 +537,112 @@
         width: 100%;
       }
     }
+
+    @media (max-height: 940px), (max-width: 560px) {
+      body {
+        padding: 10px;
+      }
+
+      .app {
+        width: min(94vw, 480px);
+      }
+
+      .header {
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
+      .title {
+        font-size: clamp(40px, 8vw, 56px);
+      }
+
+      .subtitle {
+        display: none;
+      }
+
+      .controls {
+        gap: 8px;
+        min-width: 132px;
+      }
+
+      .scores {
+        gap: 8px;
+      }
+
+      .score-box {
+        padding: 8px 10px;
+        border-radius: 12px;
+      }
+
+      .score-box span {
+        font-size: 11px;
+      }
+
+      .score-box strong {
+        margin-top: 4px;
+        font-size: 22px;
+      }
+
+      button {
+        padding: 11px 14px;
+        font-size: 14px;
+      }
+
+      .theme-picker {
+        padding: 10px 12px;
+        font-size: 13px;
+      }
+
+      .board-wrap {
+        margin-top: 6px;
+      }
+
+      .board {
+        gap: 10px;
+        padding: 10px;
+        border-radius: 18px;
+      }
+
+      .cell {
+        border-radius: 13px;
+        font-size: clamp(24px, 6vw, 36px);
+      }
+
+      .hint {
+        margin-top: 7px;
+        font-size: 11px;
+      }
+
+      .ranking-panel {
+        margin-top: 9px;
+        padding: 11px 12px 10px;
+      }
+
+      .ranking-head {
+        margin-bottom: 6px;
+      }
+
+      .ranking-title {
+        font-size: 17px;
+      }
+
+      .ranking-status {
+        margin-top: 6px;
+        font-size: 11px;
+      }
+
+      .leaderboard {
+        margin-top: 8px;
+        gap: 6px;
+        max-height: 118px;
+      }
+
+      .leaderboard li {
+        padding: 8px 10px;
+        border-radius: 12px;
+        font-size: 13px;
+      }
+    }
   </style>
 </head>
 <body>
