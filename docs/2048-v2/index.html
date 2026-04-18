@@ -710,9 +710,9 @@
       }
     }
 
-    @media (max-width: 560px) {
+    @media (max-width: 760px) {
       .app {
-        width: min(92vw, 520px);
+        width: min(94vw, 560px);
         display: block;
       }
 
@@ -731,9 +731,13 @@
       .intro-panel {
         gap: 10px;
       }
+
+      .ranking-panel {
+        margin-top: 10px;
+      }
     }
 
-    @media (max-height: 940px), (max-width: 560px) {
+    @media (max-width: 560px) {
       body {
         padding: 10px;
       }
@@ -745,6 +749,7 @@
 
       .header {
         display: flex;
+        flex-direction: column;
         gap: 10px;
         margin-bottom: 10px;
       }
