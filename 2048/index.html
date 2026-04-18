@@ -19,6 +19,12 @@
       --surface-mid: #faf8ef;
       --surface-bottom: #f3efe3;
       --button: #8f7a66;
+      --ui-card: rgba(255, 252, 246, 0.78);
+      --ui-card-strong: rgba(255, 251, 244, 0.9);
+      --ui-line: rgba(143, 122, 102, 0.1);
+      --ui-chip: rgba(191, 177, 160, 0.16);
+      --ui-accent-soft: rgba(237, 194, 46, 0.18);
+      --ui-kicker: rgba(119, 110, 101, 0.56);
       --tile-2: #eee4da;
       --tile-4: #ede0c8;
       --tile-8: #f2b179;
@@ -44,6 +50,12 @@
       --surface-mid: #fff3ea;
       --surface-bottom: #ffd9c8;
       --button: #b85c50;
+      --ui-card: rgba(255, 248, 244, 0.78);
+      --ui-card-strong: rgba(255, 245, 241, 0.9);
+      --ui-line: rgba(184, 92, 80, 0.12);
+      --ui-chip: rgba(208, 140, 127, 0.16);
+      --ui-accent-soft: rgba(255, 125, 92, 0.18);
+      --ui-kicker: rgba(107, 63, 59, 0.56);
       --tile-2: #ffe1d6;
       --tile-4: #ffd0c0;
       --tile-8: #ffae7a;
@@ -69,6 +81,12 @@
       --surface-mid: #f2fffb;
       --surface-bottom: #d3f2ea;
       --button: #4f8f83;
+      --ui-card: rgba(247, 255, 253, 0.78);
+      --ui-card-strong: rgba(244, 255, 252, 0.9);
+      --ui-line: rgba(79, 143, 131, 0.12);
+      --ui-chip: rgba(134, 182, 173, 0.16);
+      --ui-accent-soft: rgba(86, 194, 180, 0.16);
+      --ui-kicker: rgba(54, 87, 83, 0.56);
       --tile-2: #daf7f0;
       --tile-4: #c9f0e6;
       --tile-8: #7bd6c3;
@@ -94,6 +112,12 @@
       --surface-mid: #f5fbef;
       --surface-bottom: #dceacc;
       --button: #6f9960;
+      --ui-card: rgba(251, 255, 248, 0.78);
+      --ui-card-strong: rgba(247, 252, 241, 0.9);
+      --ui-line: rgba(111, 153, 96, 0.12);
+      --ui-chip: rgba(158, 183, 135, 0.17);
+      --ui-accent-soft: rgba(118, 171, 88, 0.16);
+      --ui-kicker: rgba(66, 86, 56, 0.56);
       --tile-2: #eaf4df;
       --tile-4: #ddeccc;
       --tile-8: #b9d89c;
@@ -120,6 +144,12 @@
       --surface-mid: #151826;
       --surface-bottom: #10131e;
       --button: #5d74d6;
+      --ui-card: rgba(32, 39, 62, 0.78);
+      --ui-card-strong: rgba(37, 45, 72, 0.9);
+      --ui-line: rgba(120, 144, 230, 0.14);
+      --ui-chip: rgba(93, 116, 214, 0.18);
+      --ui-accent-soft: rgba(59, 183, 217, 0.16);
+      --ui-kicker: rgba(216, 225, 255, 0.6);
       --tile-2: #2d3654;
       --tile-4: #3a476d;
       --tile-8: #4f67d7;
@@ -200,7 +230,7 @@
       padding: 12px;
       border-radius: 18px;
       background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.84) 0%, rgba(255, 255, 255, 0.68) 100%);
+        linear-gradient(180deg, var(--ui-card-strong) 0%, var(--ui-card) 100%);
       box-shadow:
         0 22px 42px -32px var(--shadow),
         inset 0 1px 0 rgba(255, 255, 255, 0.55);
@@ -211,7 +241,7 @@
       font-weight: 700;
       letter-spacing: 0.12em;
       text-transform: uppercase;
-      opacity: 0.52;
+      color: var(--ui-kicker);
     }
 
     .scores {
@@ -221,12 +251,12 @@
     }
 
     .score-box {
-      background: rgba(191, 177, 160, 0.14);
+      background: var(--ui-chip);
       color: var(--text);
       border-radius: 12px;
       padding: 8px 10px;
       text-align: center;
-      box-shadow: inset 0 0 0 1px rgba(143, 122, 102, 0.08);
+      box-shadow: inset 0 0 0 1px var(--ui-line);
     }
 
     .score-box span {
@@ -234,7 +264,7 @@
       font-size: 10px;
       font-weight: 700;
       letter-spacing: 0.07em;
-      opacity: 0.62;
+      opacity: 0.72;
     }
 
     .score-box strong {
@@ -288,11 +318,11 @@
       border: 0;
       border-radius: 12px;
       padding: 10px 12px;
-      background: rgba(191, 177, 160, 0.14);
+      background: var(--ui-chip);
       color: var(--text);
       font-size: 13px;
       font-weight: 700;
-      box-shadow: inset 0 0 0 1px rgba(143, 122, 102, 0.08);
+      box-shadow: inset 0 0 0 1px var(--ui-line);
       outline: none;
     }
 
@@ -463,7 +493,7 @@
       padding: 13px 13px 11px;
       border-radius: 18px;
       background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.84) 0%, rgba(255, 255, 255, 0.68) 100%);
+        linear-gradient(180deg, var(--ui-card-strong) 0%, var(--ui-card) 100%);
       box-shadow:
         0 22px 42px -32px var(--shadow),
         inset 0 1px 0 rgba(255, 255, 255, 0.55);
@@ -494,7 +524,7 @@
       font-weight: 700;
       letter-spacing: 0.12em;
       text-transform: uppercase;
-      opacity: 0.52;
+      color: var(--ui-kicker);
     }
 
     .ladder-meta {
@@ -507,8 +537,8 @@
       min-width: 70px;
       padding: 8px 10px;
       border-radius: 12px;
-      background: rgba(191, 177, 160, 0.14);
-      box-shadow: inset 0 0 0 1px rgba(143, 122, 102, 0.08);
+      background: var(--ui-chip);
+      box-shadow: inset 0 0 0 1px var(--ui-line);
       text-align: right;
     }
 
@@ -578,26 +608,26 @@
       gap: 12px;
       padding: 10px 12px;
       border-radius: 14px;
-      background: rgba(255, 255, 255, 0.78);
+      background: var(--ui-card-strong);
       box-shadow:
-        inset 0 0 0 1px rgba(0, 0, 0, 0.035),
+        inset 0 0 0 1px var(--ui-line),
         0 10px 16px -18px rgba(0, 0, 0, 0.32);
     }
 
     .leaderboard li.rank-1 {
       background:
-        linear-gradient(90deg, rgba(237, 194, 46, 0.24) 0%, rgba(255, 255, 255, 0.92) 55%);
+        linear-gradient(90deg, var(--ui-accent-soft) 0%, var(--ui-card-strong) 55%);
       transform: translateY(-1px);
     }
 
     .leaderboard li.rank-2 {
       background:
-        linear-gradient(90deg, rgba(180, 180, 180, 0.16) 0%, rgba(255, 255, 255, 0.86) 55%);
+        linear-gradient(90deg, rgba(255, 255, 255, 0.04) 0%, var(--ui-card-strong) 55%);
     }
 
     .leaderboard li.rank-3 {
       background:
-        linear-gradient(90deg, rgba(205, 127, 50, 0.16) 0%, rgba(255, 255, 255, 0.84) 55%);
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 0%, var(--ui-card) 55%);
     }
 
     .leaderboard-entry {
@@ -618,8 +648,8 @@
       font-weight: 800;
       flex-shrink: 0;
       color: var(--text);
-      background: rgba(143, 122, 102, 0.12);
-      box-shadow: inset 0 0 0 1px rgba(143, 122, 102, 0.1);
+      background: var(--ui-chip);
+      box-shadow: inset 0 0 0 1px var(--ui-line);
     }
 
     .leaderboard li.rank-1 .leaderboard-badge {
@@ -791,8 +821,8 @@
       .ranking-panel {
         margin-top: 9px;
         padding: 11px 12px 10px;
-        background: rgba(255, 255, 255, 0.62);
-        box-shadow: inset 0 0 0 1px rgba(143, 122, 102, 0.06);
+        background: var(--ui-card);
+        box-shadow: inset 0 0 0 1px var(--ui-line);
       }
 
       .ranking-head {
